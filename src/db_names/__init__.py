@@ -47,20 +47,15 @@ def files(
                 file_name: str | UUID = \
                     yield curly_array.parse(bom_decompressor.decompress_and_decode(
                         cast(ScalarResult, session.exec(
-                            sqlmodel.select(column('BinaryData')) \
-                                .select_from(table(tname,
-                                                   column("FileName"),
-                                                   column("BinaryData"),
-                                                   schema=schema)) \
-                                .where(column('FileName') == str(file_name)).limit(1)
+                            sqlmodel.select(column('BinaryData')).select_from(
+                                table(tname, column("FileName"), column("BinaryData"), schema=schema)
+                            ).where(column('FileName') == str(file_name)).limit(1)
                         )).one()))
 
-        gen = _()
-        del _
-        next(gen)
-        yield gen
-        gen.close()
-        del gen
+        # @formatter:off
+        gen = _();del _;next(gen);yield gen;gen.close();del gen
+        # @formatter:on
+
     del session
 
 
@@ -81,13 +76,15 @@ class MetaDataObjectTypes(StrEnum):
     Catalog = "Reference"
 
 
-with files(engine, "Params") as params, files(engine, "Config") as config:  #
+with files(engine, "Params") as params:  #
 
     names = RootModel[dict[UUID, DBName]].model_validate({
         v[0]: {"root": v} for v in iter(params.send('DBNames')[1][0:])
         if isinstance(v, list) and v and len(v) == 3 and isinstance(v[0], UUID) and v[0].int
            and v[1] in MetaDataObjectTypes
     }).root
+
+with files(engine, "Config") as config:  #
 
     configuration = {
         MetaDataGroup(v[0]): {
