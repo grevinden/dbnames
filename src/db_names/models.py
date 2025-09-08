@@ -1,128 +1,95 @@
 from abc import ABCMeta
 from functools import cached_property
-from typing import final, TypedDict, ReadOnly
+from typing import Final, final, Any, Generator, Type, Union
 from uuid import UUID
 
-from frozendict import frozendict
-from pydantic import RootModel
+__all__ = ["MetaParser", "MetaParserTableDocument", "MetaParserValuesEnum"]
 
 
-class FrozenMeta(ABCMeta):
-    """Метакласс для создания замороженных классов"""
+class NamedMixin(metaclass=ABCMeta):
+    """Базовый класс для элементов метаданных"""
 
-    def __new__(mcls, name, bases, namespace, **kwargs):
-        # Создаем класс как обычно
-        cls = super().__new__(mcls, name, bases, namespace, **kwargs)
+    _Наименование: Final[str]
 
-        # Делаем класс замороженным, переопределяя методы
-        original_setattr = getattr(cls, '__setattr__', None)
-
-        def frozen_setattr(self, name, value):
-            if hasattr(self, '_initialized') and self._initialized:
-                raise AttributeError(f"Cannot set attribute '{name}' on frozen class '{self.__class__.__name__}'")
-            if original_setattr:
-                original_setattr(self, name, value)
-            else:
-                object.__setattr__(self, name, value)
-
-        def frozen_delattr(self, name):
-            raise AttributeError(f"Cannot delete attribute '{name}' from frozen class '{self.__class__.__name__}'")
-
-        cls.__setattr__ = frozen_setattr
-        cls.__delattr__ = frozen_delattr
-
-        return cls
-
-
-class BaseElement(metaclass=FrozenMeta):
-    """Базовый замороженный класс для элементов метаданных"""
-
-    def __init__(self, name: str, table: str) -> None:
-        object.__setattr__(self, '_name', name)
-        object.__setattr__(self, '_table', table)
-        object.__setattr__(self, '_initialized', True)
-
-    def __str__(self) -> str:
-        return self._table
+    def __init__(self, name: str, /) -> None:
+        self._Наименование = name
 
     def __repr__(self) -> str:
-        return self._name
+        return self._Наименование
 
 
-class VersionedElement(metaclass=FrozenMeta):
-    """Замороженный класс для версионированных элементов"""
-    ВерсияДанных: str = "_Version"
+class TableMixin(metaclass=ABCMeta):
+    """Базовый класс для элементов метаданных"""
+
+    _ТаблицаДанных: Final[str]
+
+    def __init__(self, table: str, /) -> None:
+        self._ТаблицаДанных = table
+
+    def __str__(self) -> str:
+        return self._ТаблицаДанных
 
 
-class LinkedElement(metaclass=FrozenMeta):
-    """Замороженный класс для элементов со ссылками"""
-    Ссылка: str = "_IDRRef"
+class VersionedMixin(metaclass=ABCMeta):
+    ВерсияДанных: Final[str] = "_Version"
 
 
-class DeletableElement(metaclass=FrozenMeta):
-    """Замороженный класс для удаляемых элементов"""
-    ПометкаУдаления: str = "_Marked"
+class LinkedMixin(metaclass=ABCMeta):
+    Ссылка: Final[str] = "_IDRRef"
 
 
-class NumberedElement(metaclass=FrozenMeta):
-    """Замороженный класс для нумерованных элементов"""
-    Номер: str = "_Number"
+class DeletableMixin(metaclass=ABCMeta):
+    ПометкаУдаления: Final[str] = "_Marked"
+
+
+class NumberedMixin(metaclass=ABCMeta):
+    Номер: Final[str] = "_Number"
+
+
+class DatedMixin(metaclass=ABCMeta):
+    Дата: Final[str] = "_Date_Time"
+
+
+class FieldsMixin(metaclass=ABCMeta):
+    _Реквизиты: Final[dict[str, str | UUID]]
+
+    def __init__(self, prop: dict[str, str], /) -> None:
+        self._Реквизиты = prop
+
+    def __getattr__(self, name: str) -> str:
+        return self._Реквизиты[name]
 
 
 @final
-class MetaParserDocument(DeletableElement, NumberedElement, LinkedElement, VersionedElement, BaseElement):
-    """Финальный замороженный класс для документов метаданных"""
+class MetaParserTableDocument(
+    FieldsMixin, DatedMixin, DeletableMixin, NumberedMixin, LinkedMixin, VersionedMixin, TableMixin, NamedMixin):
+    """Класс для представления документов метаданных"""
 
-    def __init__(self, names: dict, meta: list) -> None:
+    Проведен: Final[str] = "_Posted"
+
+    def __init__(self, meta: list, /, *, names: dict[UUID, str]) -> None:  #
+
         name = meta[1][9][1][2]
+        NamedMixin.__init__(self, name)
+
         table = names[meta[1][9][1][1][2]]
+        TableMixin.__init__(self, table)
 
-        # Инициализируем базовый класс
-        super().__init__(name, table)
-
-        # Устанавливаем свойства
-        prop = frozendict({
-            v[0][1][1][1][2]: names[v[0][1][1][1][1][2]]
-            for v in iter(meta[5][2:])
-        })
-        object.__setattr__(self, '_prop', prop)
-
-        # Устанавливаем константы
-        object.__setattr__(self, 'Дата', "_Date_Time")
-        object.__setattr__(self, 'Проведен', "_Posted")
-
-    def __getattr__(self, item: str) -> str:
-        return self._prop[item]
+        prop = {prop[0][1][1][1][2]: names[prop[0][1][1][1][1][2]] for prop in iter(meta[5][2:])}
+        FieldsMixin.__init__(self, prop)
 
 
 @final
-class MetaParserEnum(BaseElement):
-    """Финальный замороженный класс для перечислений метаданных"""
+class MetaParserValuesEnum(NamedMixin, FieldsMixin):
+    """Класс для представления перечислений метаданных"""
 
-    def __init__(self, names: dict, meta: list) -> None:
-        name = meta[1][5][1][2]
-        table = names[meta[1][5][1][1][2]]
-
-        # Инициализируем базовый класс
-        super().__init__(name, table)
-
-        # Устанавливаем свойства
-        prop = frozendict({
-            v[0][1][2]: v[0][1][1][2]
-            for v in iter(meta[6][2:])
-        })
-        object.__setattr__(self, '_prop', prop)
-
-    def __getattr__(self, item: str) -> UUID:
-        return self._prop[item]
-
-    class EnumRow(TypedDict):
-        name: ReadOnly[str]
-        guid: ReadOnly[UUID]
+    def __init__(self, meta: list, /) -> None:
+        NamedMixin.__init__(self, meta[1][5][1][2])
+        FieldsMixin.__init__(self, {item[0][1][2]: item[0][1][1][2] for item in iter(meta[6][2:])})
 
     @cached_property
-    def rowset(self) -> list[EnumRow]:
-        """Кэшированное свойство для набора данных перечисления"""
-        return RootModel[list['MetaParserEnum.EnumRow']].model_validate([
-            dict(name=k, guid=v) for k, v in self._prop.items()
-        ]).root
+    def rowset(self) -> Generator[dict, Any, None]:
+        return ({'name': k, 'guid': v} for k, v in self._Реквизиты.items())
+
+
+MetaParser = Union[MetaParserTableDocument, MetaParserValuesEnum]

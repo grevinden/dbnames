@@ -6,7 +6,8 @@ requires-python = ">=3.13"
 dependencies = [
     "bom-decompressor",
     "curly-array",
-    "frozendict>=2.4.6"
+    "frozendict>=2.4.6",
+    "sqlalchemy[mssql,odbc,postgresql,pyodbc]>=2.0.43",
 ]
 
 [tool.uv.sources]

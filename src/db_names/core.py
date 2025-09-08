@@ -9,12 +9,10 @@ from frozendict import frozendict
 from sqlalchemy import Engine, select, column, table
 from sqlalchemy.orm import sessionmaker
 
-
-
 __all__ = ['metadata']
 
 from .metadata import MetaDataObjectTypes, MetaDataGroup, MetaDataTypes
-from .models import BaseElement, MetaParserDocument, MetaParserEnum
+from .models import MetaParserTableDocument, MetaParserValuesEnum, MetaParser
 
 
 @contextmanager
@@ -23,7 +21,7 @@ def files(
         tname: Literal["Params", "Config"],
         *,
         schema: str = "dbo"
-) -> Generator[Generator[curly_array.NestedCurlyArray, str | UUID, None], None, None]:
+) -> Generator[Generator[curly_array.core.NestedCurlyArray, str | UUID, None], None, None]:
     """Контекстный менеджер для работы с файлами метаданных"""
 
     with sessionmaker(bind=engine, autocommit=False)() as session:
@@ -48,7 +46,7 @@ def files(
             gen.close()
 
 
-def metadata(engine: Engine, /) -> frozendict[PurePosixPath, BaseElement]:  #
+def metadata(engine: Engine, /) -> frozendict[PurePosixPath, MetaParser]:  #
 
     # Загружаем имена таблиц
     with files(engine, "Params") as params:
@@ -63,7 +61,7 @@ def metadata(engine: Engine, /) -> frozendict[PurePosixPath, BaseElement]:  #
         }
 
     # Словарь для хранения метаданных
-    result: dict[PurePosixPath, BaseElement] = {}
+    result: dict[PurePosixPath, MetaParser] = {}
 
     # Загружаем конфигурацию метаданных
     with files(engine, "Config") as config:
@@ -84,12 +82,12 @@ def metadata(engine: Engine, /) -> frozendict[PurePosixPath, BaseElement]:  #
 
         # Создаем объекты документов
         for el in configuration[MetaDataTypes.Documents]:
-            doc = MetaParserDocument(names, el)
-            result[PurePosixPath('Документ', repr(doc))] = doc
+            doc = MetaParserTableDocument(el, names=names)
+            result[PurePosixPath('Таблица','Документ', repr(doc))] = doc
 
         # Создаем объекты перечислений
         for el in configuration[MetaDataTypes.Enums]:
-            enum = MetaParserEnum(names, el)
-            result[PurePosixPath('Перечисление', repr(enum))] = enum
+            enum = MetaParserValuesEnum(el)
+            result[PurePosixPath('Значения', 'Перечисление', repr(enum))] = enum
 
     return frozendict(result)
