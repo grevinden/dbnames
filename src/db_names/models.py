@@ -5,7 +5,7 @@ from uuid import UUID
 
 __all__ = ["MetaParserTableDocument", "MetaParserValuesEnum"]
 
-from sqlalchemy import Values, column, NVARCHAR, values, TypeDecorator, types
+from sqlalchemy import Values, column, values, TypeDecorator, types
 
 
 class NamedMixin(metaclass=ABCMeta):
@@ -123,6 +123,7 @@ class MetaParserValuesEnum(NamedMixin, FieldsMixin):
     @cached_property
     def values(self) -> Values:
         return values(
-            column('name', LiteralNVARCHAR(16)),
-            column('guid', LiteralUUID), literal_binds=True
+            column('name', LiteralNVARCHAR),
+            column('guid', LiteralUUID),
+            literal_binds=True, name=self._Наименование
         ).data([(k, v) for k, v in self._Реквизиты.items()])
