@@ -93,20 +93,10 @@ class LiteralBINARY(TypeDecorator):
 
 
 def transform_uuid_object(original_uuid) -> UUID:
-    """
-    Преобразует объект UUID путем замены порядка байтов.
-    Из: uuid.UUID('82f81a86-09dc-2e83-4a8e-1d1874df1408')
-    В:  uuid.UUID('74DF1408-1D18-4A8E-82F8-1A8609DC2E83')
-    """
     # Получаем байты UUID
-    original_bytes = original_uuid.bytes
+    b = original_uuid.bytes
 
-    transformed_bytes = (
-            original_bytes[12:16] +  # time_low
-            original_bytes[10:12] +  # time_mid
-            original_bytes[8:10] +  # time_high_version
-            original_bytes[0:8]  # clock_seq_node
-    )
+    transformed_bytes = b[8:10] + b[10:16] + b[6:8] + b[4:6]  + b[0:4]
 
     # Создаем новый UUID из преобразованных байтов
     return UUID(bytes=transformed_bytes)
