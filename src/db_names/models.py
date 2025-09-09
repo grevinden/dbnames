@@ -1,9 +1,11 @@
 from abc import ABCMeta
 from functools import cached_property
-from typing import Final, final, Any, Generator, Type, Union
+from typing import Final, final
 from uuid import UUID
 
 __all__ = ["MetaParserTableDocument", "MetaParserValuesEnum"]
+
+from sqlalchemy import Values, column, BINARY, NVARCHAR
 
 
 class NamedMixin(metaclass=ABCMeta):
@@ -88,8 +90,7 @@ class MetaParserValuesEnum(NamedMixin, FieldsMixin):
         FieldsMixin.__init__(self, {item[0][1][2]: item[0][1][1][2] for item in iter(meta[6][2:])})
 
     @cached_property
-    def rowset(self) -> Generator[dict, Any, None]:
-        return ({'name': k, 'guid': v} for k, v in self._Реквизиты.items())
-
-
-
+    def values(self):
+        return Values(
+            column('guid', BINARY(16)), column('name', NVARCHAR(100)),
+        ).data(values=[(k, v) for k, v in self._Реквизиты.items()])
