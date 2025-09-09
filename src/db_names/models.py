@@ -52,10 +52,10 @@ class DatedMixin(metaclass=ABCMeta):
     Дата: Final[str] = "_Date_Time"
 
 
-class FieldsMixin(metaclass=ABCMeta):
-    _Реквизиты: Final[dict[str, str | UUID]]
+class FieldsMixin[T=dict[str, str]](metaclass=ABCMeta):
+    _Реквизиты: Final[T]
 
-    def __init__(self, prop: dict[str, str], /) -> None:
+    def __init__(self, prop: T, /) -> None:
         self._Реквизиты = prop
 
     def __getattr__(self, name: str) -> str:
@@ -86,20 +86,50 @@ class LiteralBINARY(TypeDecorator):
     cache_ok = True
 
     def literal_processor(self, dialect):
-        def process(value: bytes)->str:
+        def process(value: bytes) -> str:
             return f"0x{value.hex().upper()}"
 
         return process
 
 
+def transform_uuid_object(original_uuid) -> UUID:
+    """
+    Преобразует объект UUID путем замены порядка байтов.
+    Из: uuid.UUID('82f81a86-09dc-2e83-4a8e-1d1874df1408')
+    В:  uuid.UUID('74DF1408-1D18-4A8E-82F8-1A8609DC2E83')
+    """
+    # Получаем байты UUID
+    original_bytes = original_uuid.bytes
+
+    # Меняем порядок байтов согласно схеме:
+    # Байты 12-15 -> позиции 0-3
+    # Байты 10-11 -> позиции 4-5
+    # Байты 8-9   -> позиции 6-7
+    # Байты 6-7   -> позиции 8-9
+    # Байты 4-5   -> позиции 10-11
+    # Байты 0-3   -> позиции 12-15
+
+    transformed_bytes = (
+            original_bytes[12:16] +  # Байты 12-15 -> первые 4 байта
+            original_bytes[10:12] +  # Байты 10-11 -> следующие 2 байта
+            original_bytes[8:10] +  # Байты 8-9 -> следующие 2 байта
+            original_bytes[6:8] +  # Байты 6-7 -> следующие 2 байта
+            original_bytes[4:6] +  # Байты 4-5 -> следующие 2 байта
+            original_bytes[0:4]  # Байты 0-3 -> последние 4 байта
+    )
+
+    # Создаем новый UUID из преобразованных байтов
+    return UUID(bytes=transformed_bytes)
+
 
 @final
-class MetaParserValuesEnum(NamedMixin, FieldsMixin):
+class MetaParserValuesEnum(NamedMixin, FieldsMixin[dict[str, UUID]]):
     """Класс для представления перечислений метаданных"""
 
     def __init__(self, meta: list, /) -> None:
         NamedMixin.__init__(self, meta[1][5][1][2])
-        FieldsMixin.__init__(self, {item[0][1][2]: item[0][1][1][2] for item in iter(meta[6][2:])})
+        FieldsMixin.__init__(self,
+                             {item[0][1][2]: transform_uuid_object(item[0][1][1][2]) for item in iter(meta[6][2:])})
 
     @cached_property
     def values(self) -> Values:
