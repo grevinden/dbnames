@@ -5,7 +5,7 @@ from uuid import UUID
 
 __all__ = ["MetaParserTableDocument", "MetaParserValuesEnum"]
 
-from sqlalchemy import Values, column, values, TypeDecorator, types
+from sqlalchemy import Values, column, values, NVARCHAR, BINARY
 
 
 class NamedMixin(metaclass=ABCMeta):
@@ -81,35 +81,6 @@ class MetaParserTableDocument(
         FieldsMixin.__init__(self, prop)
 
 
-class LiteralBINARY(TypeDecorator):
-    impl = types.BINARY
-    cache_ok = True
-
-    def literal_processor(self, dialect):
-        def process(value: bytes)->str:
-            return f"0x{value.hex().upper()}"
-
-        return process
-
-
-class LiteralNVARCHAR(TypeDecorator):
-    impl = types.NVARCHAR
-    cache_ok = True
-
-    def literal_processor(self, dialect):
-        parent_processor = super().literal_processor(dialect)
-
-        def process(value: UUID):
-            nonlocal dialect, parent_processor
-            match dialect.name:
-                case r'mssql':
-                    return f"N'{value}'"
-                case _:
-                    parent_processor(value)
-
-        return process
-
-
 @final
 class MetaParserValuesEnum(NamedMixin, FieldsMixin):
     """Класс для представления перечислений метаданных"""
@@ -121,7 +92,7 @@ class MetaParserValuesEnum(NamedMixin, FieldsMixin):
     @cached_property
     def values(self) -> Values:
         return values(
-            column('name', LiteralNVARCHAR),
-            column('guid', LiteralBINARY(16)),
+            column('name', NVARCHAR),
+            column('guid', BINARY(16)),
             literal_binds=True, name=self._Наименование
         ).data([(k, v.bytes) for k, v in self._Реквизиты.items()])
