@@ -81,21 +81,19 @@ class MetaParserTableDocument(
         FieldsMixin.__init__(self, prop)
 
 
-class LiteralUUID(TypeDecorator):
-    impl = types.UUID
-
+class LiteralBINARY(TypeDecorator):
+    impl = types.BINARY
     cache_ok = True
 
     def literal_processor(self, dialect):
-        def process(value: UUID):
-            return f"0x{value.hex.upper()}"
+        def process(value: bytes)->str:
+            return f"0x{value.hex().upper()}"
 
         return process
 
 
 class LiteralNVARCHAR(TypeDecorator):
     impl = types.NVARCHAR
-
     cache_ok = True
 
     def literal_processor(self, dialect):
@@ -124,6 +122,6 @@ class MetaParserValuesEnum(NamedMixin, FieldsMixin):
     def values(self) -> Values:
         return values(
             column('name', LiteralNVARCHAR),
-            column('guid', LiteralUUID),
+            column('guid', LiteralBINARY(16)),
             literal_binds=True, name=self._Наименование
-        ).data([(k, v) for k, v in self._Реквизиты.items()])
+        ).data([(k, v.bytes) for k, v in self._Реквизиты.items()])
