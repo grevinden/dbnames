@@ -93,4 +93,4 @@ class MetaParserValuesEnum(NamedMixin, FieldsMixin):
     def values(self):
         return Values(
             column('guid', BINARY(16)), column('name', NVARCHAR(100)),
-        ).data(values=[(k, v) for k, v in self._Реквизиты.items()])
+        ).data(values=[(k, v) for k, v in self._Реквизиты.items()]).alias(self._Наименование)
