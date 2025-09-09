@@ -101,21 +101,11 @@ def transform_uuid_object(original_uuid) -> UUID:
     # Получаем байты UUID
     original_bytes = original_uuid.bytes
 
-    # Меняем порядок байтов согласно схеме:
-    # Байты 12-15 -> позиции 0-3
-    # Байты 10-11 -> позиции 4-5
-    # Байты 8-9   -> позиции 6-7
-    # Байты 6-7   -> позиции 8-9
-    # Байты 4-5   -> позиции 10-11
-    # Байты 0-3   -> позиции 12-15
-
     transformed_bytes = (
-            original_bytes[12:16] +  # Байты 12-15 -> первые 4 байта
-            original_bytes[10:12] +  # Байты 10-11 -> следующие 2 байта
-            original_bytes[8:10] +  # Байты 8-9 -> следующие 2 байта
-            original_bytes[6:8] +  # Байты 6-7 -> следующие 2 байта
-            original_bytes[4:6] +  # Байты 4-5 -> следующие 2 байта
-            original_bytes[0:4]  # Байты 0-3 -> последние 4 байта
+            original_bytes[12:16] +  # time_low
+            original_bytes[10:12] +  # time_mid
+            original_bytes[8:10] +  # time_high_version
+            original_bytes[0:8]  # clock_seq_node
     )
 
     # Создаем новый UUID из преобразованных байтов
