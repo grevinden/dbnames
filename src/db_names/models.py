@@ -3,7 +3,7 @@ from functools import cached_property
 from typing import Final, final, Any, Generator, Type, Union
 from uuid import UUID
 
-__all__ = ["MetaParser", "MetaParserTableDocument", "MetaParserValuesEnum"]
+__all__ = ["MetaParserTableDocument", "MetaParserValuesEnum"]
 
 
 class NamedMixin(metaclass=ABCMeta):
@@ -92,4 +92,4 @@ class MetaParserValuesEnum(NamedMixin, FieldsMixin):
         return ({'name': k, 'guid': v} for k, v in self._Реквизиты.items())
 
 
-MetaParser = Union[MetaParserTableDocument, MetaParserValuesEnum]
+

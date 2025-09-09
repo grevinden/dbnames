@@ -5,20 +5,22 @@ from uuid import UUID
 
 import bom_decompressor
 import curly_array
-from frozendict import frozendict
 from sqlalchemy import Engine, select, column, table
 from sqlalchemy.orm import sessionmaker
 
 __all__ = ['metadata']
 
+from sqlalchemy.util import immutabledict
+
 from .metadata import MetaDataObjectTypes, MetaDataGroup, MetaDataTypes
-from .models import MetaParserTableDocument, MetaParserValuesEnum, MetaParser
+from .models import MetaParserTableDocument, MetaParserValuesEnum
+from .types import MetaData
 
 
 @contextmanager
 def files(
         engine: Engine,
-        tname: Literal["Params", "Config"],
+        table_name: Literal["Params", "Config"],
         *,
         schema: str = "dbo"
 ) -> Generator[Generator[curly_array.core.NestedCurlyArray, str | UUID, None], None, None]:
@@ -31,7 +33,7 @@ def files(
 
             while True:
                 stmt = select(column('BinaryData')).select_from(
-                    table(tname, column("FileName"), column("BinaryData"), schema=schema)
+                    table(table_name, column("FileName"), column("BinaryData"), schema=schema)
                 ).where(column('FileName') == str(file_name)).limit(1)
                 result: bytes = session.execute(stmt).scalar_one()
                 parsed_data = curly_array.parse(bom_decompressor.decompress_and_decode(result))
@@ -46,7 +48,7 @@ def files(
             gen.close()
 
 
-def metadata(engine: Engine, /) -> frozendict[PurePosixPath, MetaParser]:  #
+def metadata(engine: Engine, /) -> MetaData:  #
 
     # Загружаем имена таблиц
     with files(engine, "Params") as params:
@@ -61,7 +63,7 @@ def metadata(engine: Engine, /) -> frozendict[PurePosixPath, MetaParser]:  #
         }
 
     # Словарь для хранения метаданных
-    result: dict[PurePosixPath, MetaParser] = {}
+    result = {}
 
     # Загружаем конфигурацию метаданных
     with files(engine, "Config") as config:
@@ -83,11 +85,11 @@ def metadata(engine: Engine, /) -> frozendict[PurePosixPath, MetaParser]:  #
         # Создаем объекты документов
         for el in configuration[MetaDataTypes.Documents]:
             doc = MetaParserTableDocument(el, names=names)
-            result[PurePosixPath('Таблица','Документ', repr(doc))] = doc
+            result[PurePosixPath('Таблица', 'Документ', repr(doc))] = doc
 
         # Создаем объекты перечислений
         for el in configuration[MetaDataTypes.Enums]:
             enum = MetaParserValuesEnum(el)
             result[PurePosixPath('Значения', 'Перечисление', repr(enum))] = enum
 
-    return frozendict(result)
+    return immutabledict(result)

@@ -6,8 +6,7 @@ requires-python = ">=3.13"
 dependencies = [
     "bom-decompressor",
     "curly-array",
-    "frozendict",
-    "sqlalchemy"
+    "sqlalchemy",
 ]
 
 [tool.uv.sources]
