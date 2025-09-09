@@ -90,7 +90,7 @@ class MetaParserValuesEnum(NamedMixin, FieldsMixin):
         FieldsMixin.__init__(self, {item[0][1][2]: item[0][1][1][2] for item in iter(meta[6][2:])})
 
     @cached_property
-    def values(self):
+    def values(self) -> Values:
         return Values(
             column('guid', BINARY(16)), column('name', NVARCHAR(100)),
         ).data(values=[(k, v) for k, v in self._Реквизиты.items()]).alias(self._Наименование)
