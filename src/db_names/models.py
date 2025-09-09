@@ -1,6 +1,6 @@
 from abc import ABCMeta
 from functools import cached_property
-from typing import Final, final, cast
+from typing import Final, final, cast, Any, Generator
 from uuid import UUID
 
 __all__ = ["MetaParserTableDocument", "MetaParserValuesEnum"]
@@ -90,8 +90,5 @@ class MetaParserValuesEnum(NamedMixin, FieldsMixin):
         FieldsMixin.__init__(self, {item[0][1][2]: item[0][1][1][2] for item in iter(meta[6][2:])})
 
     @cached_property
-    def values(self) -> Values:
-        return values(
-            column('guid', BINARY(16)), column('name', NVARCHAR(16)),
-            literal_binds=True, name=self._Наименование
-        ).data(values=[(cast(UUID, k).bytes, v) for k, v in self._Реквизиты.items()])
+    def values(self) -> list[tuple[str, UUID]]:
+        return [(k, v) for k, v in self._Реквизиты.items()]
