@@ -6,6 +6,7 @@ from uuid import UUID
 __all__ = ["MetaParserTableDocument", "MetaParserValuesEnum"]
 
 from sqlalchemy import Values, column, values, TypeDecorator, types, NVARCHAR
+from sqlalchemy_toolbelt import LiteralHexBINARY
 
 
 class NamedMixin(metaclass=ABCMeta):
@@ -81,17 +82,6 @@ class MetaParserTableDocument(
         FieldsMixin.__init__(self, prop)
 
 
-class LiteralBINARY(TypeDecorator):
-    impl = types.BINARY
-    cache_ok = True
-
-    def literal_processor(self, dialect):
-        def process(value: bytes) -> str:
-            return f"0x{value.hex().upper()}"
-
-        return process
-
-
 def transform_uuid_object(original_uuid) -> UUID:
     # Получаем байты UUID
     b = original_uuid.bytes
@@ -115,6 +105,6 @@ class MetaParserValuesEnum(NamedMixin, FieldsMixin[dict[str, UUID]]):
     def values(self) -> Values:
         return values(
             column('name', NVARCHAR),
-            column('guid', LiteralBINARY(16)),
+            column('guid', LiteralHexBINARY(16)),
             literal_binds=True, name=self._Наименование
         ).data([(k, v.bytes) for k, v in self._Реквизиты.items()])
