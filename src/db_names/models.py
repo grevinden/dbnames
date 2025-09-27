@@ -1,11 +1,11 @@
 from abc import ABCMeta
 from functools import cached_property
-from typing import Final, final
+from typing import Final, final, cast
 from uuid import UUID
 
 __all__ = ["MetaParserTableDocument", "MetaParserValuesEnum"]
 
-from sqlalchemy import Values, column, values, TypeDecorator, types, NVARCHAR
+from sqlalchemy import Values, column, values, NVARCHAR
 from sqlalchemy_toolbelt import LiteralHexBINARY
 
 
@@ -53,7 +53,7 @@ class DatedMixin(metaclass=ABCMeta):
     Дата: Final[str] = "_Date_Time"
 
 
-class FieldsMixin[T=dict[str, str]](metaclass=ABCMeta):
+class FieldsMixin[T:dict[str, str | UUID]](metaclass=ABCMeta):
     _Реквизиты: Final[T]
 
     def __init__(self, prop: T, /) -> None:
@@ -86,7 +86,7 @@ def transform_uuid_object(original_uuid) -> UUID:
     # Получаем байты UUID
     b = original_uuid.bytes
 
-    transformed_bytes = b[8:10] + b[10:16] + b[6:8] + b[4:6]  + b[0:4]
+    transformed_bytes = b[8:10] + b[10:16] + b[6:8] + b[4:6] + b[0:4]
 
     # Создаем новый UUID из преобразованных байтов
     return UUID(bytes=transformed_bytes)
@@ -98,8 +98,8 @@ class MetaParserValuesEnum(NamedMixin, FieldsMixin[dict[str, UUID]]):
 
     def __init__(self, meta: list, /) -> None:
         NamedMixin.__init__(self, meta[1][5][1][2])
-        FieldsMixin.__init__(self,
-                             {item[0][1][2]: transform_uuid_object(item[0][1][1][2]) for item in iter(meta[6][2:])})
+        FieldsMixin.__init__(self, {cast(str, item[0][1][2]): transform_uuid_object(item[0][1][1][2])
+                                    for item in iter(meta[6][2:])})
 
     @cached_property
     def values(self) -> Values:
