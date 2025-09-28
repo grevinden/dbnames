@@ -3,7 +3,7 @@ from functools import cached_property
 from typing import Final, final, cast
 from uuid import UUID
 
-from e1c_uuid_transform import guid2uuid
+from e1c_uuid_transform import guid2uuid, GUID
 from sqlalchemy import Values, column, values, NVARCHAR
 from sqlalchemy_toolbelt import LiteralHexBINARY
 
@@ -89,7 +89,7 @@ class MetaParserValuesEnum(NamedMixin, FieldsMixin[dict[str, UUID]]):
 
     def __init__(self, meta: list, /) -> None:
         NamedMixin.__init__(self, meta[1][5][1][2])
-        FieldsMixin.__init__(self, {cast(str, item[0][1][2]): guid2uuid(item[0][1][1][2])
+        FieldsMixin.__init__(self, {cast(str, item[0][1][2]): guid2uuid(GUID(item[0][1][1][2]))
                                     for item in iter(meta[6][2:])})
 
     @cached_property
