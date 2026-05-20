@@ -15,4 +15,4 @@ dependencies = [
 curly-array = { git = "https://gitflic.ru/project/e1c/py-curly-array.git", rev = "116752242b3b87e2f4578689e82f9ce601b08243" }
 bom-decompressor = { git = "https://github.com/grevinden/bom-decompressor.git", rev = "4308ea690aa014a1b592a8943bc3bf48e00651b7" }
 sqlalchemy-toolbelt = { git = "https://github.com/grevinden/py-sqlalchemy-toolbelt.git", rev = "f0326e92e0fbb12a56499a4dc7280b094247e55c" }
-e1c-uuid-transform = { git = "https://gitflic.ru/project/e1c/py-guid-transform.git", rev = "3b95d4f8acf16baa848d2a6572c4808855eb253f" }
+e1c-uuid-transform = { git = "https://github.com/grevinden/py-guid-transform.git", rev = "3b95d4f8acf16baa848d2a6572c4808855eb253f" }
